@@ -115,10 +115,10 @@ function toggleBeacon() {
         }
         state.oscillator = state.audioCtx.createOscillator();
         state.oscillator.type = 'sine';
-        state.oscillator.frequency.setValueAtTime(17500, state.audioCtx.currentTime); 
+        state.oscillator.frequency.setValueAtTime(18500, state.audioCtx.currentTime); 
         state.oscillator.connect(state.audioCtx.destination);
         state.oscillator.start();
-        console.log("[Ultrasonic] Broadcasting at 17.5kHz...");
+        console.log("[Ultrasonic] Broadcasting at 18.5kHz...");
 
         // Notify Server
         state.socket.emit('teacher_toggle_broadcast', true);
