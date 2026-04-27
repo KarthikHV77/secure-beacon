@@ -90,7 +90,7 @@
         ];
 
         let currentUser = null;
-        const TARGET_FREQUENCY = 18500;
+        const TARGET_FREQUENCY = 17500;
         const TOLERANCE = 500;
         let audioCtx, analyser, microphone, scriptNode;
 
@@ -153,7 +153,7 @@
                     const freq = Math.round((maxIndex * (audioCtx.sampleRate/2)) / dataArray.length);
                     if (maxVal > 10) debugEl.textContent = `Freq: ${freq} Hz | Vol: ${maxVal}`;
                     
-                    if(Math.abs(freq - TARGET_FREQUENCY) < TOLERANCE && maxVal > 50) {
+                    if(Math.abs(freq - TARGET_FREQUENCY) < TOLERANCE && maxVal > 20) {
                         scriptNode.disconnect(); microphone.disconnect(); analyser.disconnect(); audioCtx.close();
                         statusEl.textContent = "Signal verified! Syncing...";
                         socket.emit('student_attendance', currentUser);
