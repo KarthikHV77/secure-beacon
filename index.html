@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Beacon | Admin Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="beacon-icon"></div>
+                <h2>SecureBeacon</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-view="live">
+                    <span class="icon">🔴</span> Live Class
+                </a>
+                <a href="#" class="nav-item" data-view="history">
+                    <span class="icon">📊</span> History & Analytics
+                </a>
+            </nav>
+            <div class="user-profile">
+                <div class="avatar">👨‍🏫</div>
+                <div class="user-info">
+                    <span class="name">Prof. Karthik</span>
+                    <span class="role">Department of MCA</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="class-selector">
+                    <select id="currentClass" class="custom-select">
+                        <option value="software-engineering">MCA Semester 2 - Software Engineering</option>
+                    </select>
+                </div>
+                <div class="beacon-controls">
+                    <div class="status-indicator">
+                        <div class="pulse-ring"></div>
+                        <span id="beaconStatusText">Beacon Offline</span>
+                    </div>
+                    <button id="toggleBeaconBtn" class="btn btn-primary">Start Broadcast</button>
+                </div>
+            </header>
+
+            <div class="dashboard-grid view-section active" id="view-live">
+                <div class="stat-card">
+                    <h3>Total Enrolled</h3>
+                    <div class="value">28</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Present Today</h3>
+                    <div class="value present-val" id="presentCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Absent</h3>
+                    <div class="value absent-val" id="absentCount">28</div>
+                </div>
+                
+                <div class="chart-container card">
+                    <h3>Real-Time Attendance Overview</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="attendanceChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-container card">
+                    <div class="table-header">
+                        <h3>Live Check-Ins</h3>
+                        <div class="actions">
+                            <button class="btn btn-secondary" onclick="exportData('pdf')">Export PDF</button>
+                            <button class="btn btn-secondary" onclick="exportData('excel')">Export Excel</button>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Sl No</th>
+                                <th>Student Name</th>
+                                <th>Roll No</th>
+                                <th>Time of Entry</th>
+                                <th>RSSI (Signal)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="liveLogBody">
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="dashboard-grid view-section" id="view-history" style="display:none;">
+                 <div class="card full-width">
+                     <h3>Analytics & Filtering</h3>
+                     <p style="color:var(--text-muted);margin-top:1rem;">Feature under development.</p>
+                 </div>
+            </div>
+        </main>
+    </div>
+    <script type="module" src="app.js"></script>
+</body>
+</html>

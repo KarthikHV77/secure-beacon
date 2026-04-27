@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Check-In (Ultrasonic)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f1115; color: #f0f0f5; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+        .container { background-color: #1c1f26; padding: 3rem; border-radius: 1rem; border: 1px solid rgba(255, 255, 255, 0.08); max-width: 400px; width: 100%; }
+        h2 { margin-top: 0; color: #3b82f6; }
+        p { color: #94a3b8; margin-bottom: 2rem; line-height: 1.5; font-size: 0.9rem; }
+        select { width: 100%; padding: 0.75rem; margin-bottom: 1.5rem; border-radius: 0.5rem; background: #0f1115; color: white; border: 1px solid rgba(255,255,255,0.2); }
+        .btn { background-color: #3b82f6; color: white; border: none; padding: 1rem; font-size: 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 600; transition: all 0.3s ease; width: 100%; }
+        .btn:hover { background-color: #2563eb; }
+        .btn:disabled { background-color: #475569; cursor: not-allowed; }
+        #status { margin-top: 1.5rem; font-weight: 600; }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .scanning { color: #f59e0b; }
+        #debug { margin-top: 1rem; font-size: 0.75rem; color: #64748b; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Student Portal</h2>
+        <p>Software Engineering - Select your identity and listen for the professor's signal.</p>
+        
+        <select id="studentSelect">
+            <option value="" disabled selected>Select your name...</option>
+            <!-- Injected dynamically -->
+        </select>
+
+        <button id="listenBtn" class="btn" disabled>Listen for Signal</button>
+        <div id="status"></div>
+        <div id="debug"></div>
+    </div>
+
+    <script>
+        const socket = io(); // Connect to backend
+        
+        // The real database
+        const studentDb = [
+            { id: "1NC25MC001", name: "ABHISHEK H N" },
+            { id: "1NC25MC002", name: "ADITHYA GOWDA N A" },
+            { id: "1NC25MC003", name: "BHUVANESHWARI M" },
+            { id: "1NC25MC004", name: "CHARANA SHREE R" },
+            { id: "1NC25MC005", name: "DEEKSHA L D" },
+            { id: "1NC25MC006", name: "DEEPAK H S" },
+            { id: "1NC25MC007", name: "GANGOTHRI G" },
+            { id: "1NC25MC008", name: "HARI N B" },
+            { id: "1NC25MC009", name: "HARSHITH GOWDA" },
+            { id: "1NC25MC010", name: "HUSSIAN M K" },
+            { id: "1NC25MC011", name: "KARTHIK M" },
+            { id: "1NC25MC012", name: "KUBRA TAJ R A" },
+            { id: "1NC25MC013", name: "LIKHITH KUMAR D" },
+            { id: "1NC25MC014", name: "MANJUNATHA S" },
+            { id: "1NC25MC015", name: "MAZEENAKHTAR MAHAMMADIBRAHIM CHUHE" },
+            { id: "1NC25MC016", name: "PRIYANKA C" },
+            { id: "1NC25MC017", name: "PRIYANKA GOPAL GADIVADDAR" },
+            { id: "1NC25MC018", name: "RAKSHITHA C S" },
+            { id: "1NC25MC019", name: "RASHEED B" },
+            { id: "1NC25MC020", name: "SHRAVANI D R" },
+            { id: "1NC25MC021", name: "SHRAVANI K N" },
+            { id: "1NC25MC022", name: "SHRAVANI M" },
+            { id: "1NC25MC023", name: "SOWJANYA N" },
+            { id: "1NC25MC024", name: "V N KEERTHANA" },
+            { id: "1NC25MC025", name: "VARSHA K P" },
+            { id: "1NC25MC026", name: "VIDHYA R" },
+            { id: "1NC25MC027", name: "VIJET TADASAD" },
+            { id: "1NC25MC028", name: "YESHWANTH M N" }
+        ];
+
+        const selectEl = document.getElementById('studentSelect');
+        const listenBtn = document.getElementById('listenBtn');
+        const statusEl = document.getElementById('status');
+        const debugEl = document.getElementById('debug');
+        
+        let currentUser = null;
+
+        // Populate Dropdown
+        studentDb.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.id} - ${s.name}`;
+            selectEl.appendChild(opt);
+        });
+
+        selectEl.addEventListener('change', (e) => {
+            if(e.target.value) {
+                currentUser = studentDb.find(s => s.id === e.target.value);
+                listenBtn.disabled = false;
+            }
+        });
+
+        // Backend Responses
+        socket.on('attendance_success', () => {
+            statusEl.textContent = "Attendance Marked Successfully! ✅";
+            statusEl.className = 'success';
+            listenBtn.textContent = "You are Checked In";
+
+            // Add a button to quickly mark another student for testing
+            const resetBtn = document.createElement('button');
+            resetBtn.className = 'btn';
+            resetBtn.style.marginTop = '1rem';
+            resetBtn.style.backgroundColor = '#4b5563';
+            resetBtn.textContent = "Check-In Another Student";
+            resetBtn.onclick = () => location.reload();
+            document.querySelector('.container').appendChild(resetBtn);
+        });
+
+        socket.on('attendance_rejected', (msg) => {
+            statusEl.textContent = `Error: ${msg}`;
+            statusEl.className = 'error';
+            listenBtn.textContent = "Try Again";
+            listenBtn.disabled = false;
+        });
+
+        const TARGET_FREQUENCY = 18500;
+        const TOLERANCE = 500;
+        let audioCtx, analyser, microphone, scriptNode;
+
+        listenBtn.addEventListener('click', async () => {
+            if(!currentUser) return;
+            
+            listenBtn.disabled = true;
+            statusEl.textContent = "Requesting microphone...";
+            statusEl.className = 'scanning';
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, 
+                    video: false 
+                });
+                
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 2048;
+                
+                microphone = audioCtx.createMediaStreamSource(stream);
+                scriptNode = audioCtx.createScriptProcessor(2048, 1, 1);
+                
+                microphone.connect(analyser);
+                analyser.connect(scriptNode);
+                scriptNode.connect(audioCtx.destination);
+                
+                statusEl.textContent = `Waiting for Professor's signal...`;
+                
+                scriptNode.onaudioprocess = function() {
+                    const bufferLength = analyser.frequencyBinCount;
+                    const dataArray = new Uint8Array(bufferLength);
+                    analyser.getByteFrequencyData(dataArray);
+                    
+                    let maxVal = 0, maxIndex = 0;
+                    for(let i = Math.floor(bufferLength/2); i < bufferLength; i++) {
+                        if(dataArray[i] > maxVal) { maxVal = dataArray[i]; maxIndex = i; }
+                    }
+                    
+                    const freq = Math.round((maxIndex * (audioCtx.sampleRate/2)) / bufferLength);
+                    if (maxVal > 10) debugEl.textContent = `Loudest Freq: ${freq} Hz (Vol: ${maxVal})`;
+                    
+                    // Match found!
+                    if(Math.abs(freq - TARGET_FREQUENCY) < TOLERANCE && maxVal > 50) {
+                        scriptNode.disconnect();
+                        microphone.disconnect();
+                        analyser.disconnect();
+                        audioCtx.close();
+                        
+                        statusEl.textContent = "Signal Found! Securing attendance...";
+                        
+                        // Send real payload to backend
+                        socket.emit('student_attendance', currentUser);
+                    }
+                };
+            } catch (err) {
+                statusEl.textContent = "Error: Mic access denied.";
+                statusEl.className = 'error';
+                listenBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
