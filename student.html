@@ -31,6 +31,19 @@
         .btn:disabled { background-color: #475569; cursor: not-allowed; transform: none; }
         
         #attendance-zone { display: none; }
+        .stats-card {
+            background: rgba(59, 130, 246, 0.05);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .stats-card h4 { margin: 0; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        .stats-card .percentage { font-size: 2.5rem; font-weight: 700; color: var(--primary); margin: 0.5rem 0; }
+        .progress-bar-bg { background: rgba(255,255,255,0.05); height: 8px; border-radius: 4px; overflow: hidden; margin-top: 10px; }
+        .progress-bar-fill { background: var(--primary); height: 100%; width: 0%; transition: width 1s ease-out; }
+        
         #status { margin-top: 1.5rem; font-weight: 600; padding: 1rem; border-radius: 0.5rem; }
         .success { color: var(--success); background: rgba(16, 185, 129, 0.1); }
         .error { color: var(--error); background: rgba(239, 68, 68, 0.1); }
@@ -38,29 +51,35 @@
         #debug { margin-top: 1rem; font-size: 0.75rem; color: #64748b; font-family: monospace; }
         .user-chip { background: rgba(59, 130, 246, 0.1); color: var(--primary); padding: 0.5rem 1rem; border-radius: 2rem; display: inline-block; margin-bottom: 1.5rem; font-weight: 600; font-size: 0.9rem; }
     </style>
+    <script>
+        // Security Guard: Check if student is logged in
+        if (localStorage.getItem('role') !== 'student') {
+            window.location.href = '/index.html';
+        }
+    </script>
 </head>
 <body>
     <div class="container">
-        <!-- Login Section -->
-        <div id="login-zone">
-            <h2>Student Login</h2>
-            <p>Enter your credentials to access Software Engineering attendance.</p>
-            <div class="input-group">
-                <label>Roll Number (USN)</label>
-                <input type="text" id="usnInput" placeholder="e.g. 1NC25MC001">
-            </div>
-            <div class="input-group">
-                <label>Password</label>
-                <input type="password" id="passInput" placeholder="Default: 123456">
-            </div>
-            <button id="loginBtn" class="btn">Login</button>
-        </div>
-
-        <!-- Attendance Section (Hidden until login) -->
-        <div id="attendance-zone">
+        <!-- Attendance Section -->
+        <div id="attendance-zone" style="display:block;">
             <h2>Verify Presence</h2>
             <div id="userInfo" class="user-chip"></div>
-            <p>Ready to listen for the professor's signal. Please ensure your volume is up.</p>
+            
+            <div class="stats-card">
+                <h4>My Attendance</h4>
+                <div class="percentage" id="studentPerc">0%</div>
+                <div style="color:var(--muted); font-size:0.8rem;" id="studentStatsText">Calculating...</div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="percFill"></div>
+                </div>
+            </div>
+
+            <div id="missedSection" style="display:none; text-align:left; margin-top:1.5rem;">
+                <h4 style="color:var(--error); font-size:0.8rem; text-transform:uppercase; margin-bottom:0.5rem;">Missed Dates:</h4>
+                <div id="missedList" style="font-size:0.85rem; color:var(--muted); line-height:1.6;"></div>
+            </div>
+
+            <p>Ready to listen for the professor's signal.</p>
             <button id="listenBtn" class="btn">Listen for Signal</button>
         </div>
 
@@ -90,30 +109,19 @@
         ];
 
         let currentUser = null;
-        const TARGET_FREQUENCY = 18500;
-        const TOLERANCE = 500;
+        const TARGET_FREQUENCIES = [18200, 18500, 18800];
+        const TOLERANCE = 400; 
+        const SENSITIVITY_THRESHOLD = 15; // Lowered for 20m range
         let audioCtx, analyser, microphone, scriptNode;
 
-        // Login Logic
-        document.getElementById('loginBtn').onclick = () => {
-            const usn = document.getElementById('usnInput').value.trim().toUpperCase();
-            const pass = document.getElementById('passInput').value;
-            const status = document.getElementById('status');
-
-            const student = studentDb.find(s => s.id === usn);
-            
-            if (student && pass === "123456") {
-                currentUser = student;
-                document.getElementById('login-zone').style.display = 'none';
-                document.getElementById('attendance-zone').style.display = 'block';
-                document.getElementById('userInfo').textContent = `Logged in: ${student.name}`;
-                status.textContent = "";
-                status.className = "";
-            } else {
-                status.textContent = "Invalid USN or Password!";
-                status.className = "error";
-            }
-        };
+        // Auto-Login from session
+        const storedUsn = localStorage.getItem('user_id');
+        const student = studentDb.find(s => s.id === storedUsn);
+        if (student) {
+            currentUser = student;
+            document.getElementById('userInfo').textContent = `Logged in: ${student.name}`;
+            socket.emit('get_student_stats', student.id);
+        }
 
         // Attendance Verification Logic
         const listenBtn = document.getElementById('listenBtn');
@@ -145,15 +153,24 @@
                     const dataArray = new Uint8Array(analyser.frequencyBinCount);
                     analyser.getByteFrequencyData(dataArray);
                     
-                    let maxVal = 0, maxIndex = 0;
-                    for(let i = Math.floor(dataArray.length/2); i < dataArray.length; i++) {
-                        if(dataArray[i] > maxVal) { maxVal = dataArray[i]; maxIndex = i; }
+                    let maxVal = 0, detectedFreq = 0;
+                    for (let i = 0; i < dataArray.length; i++) {
+                        const freq = i * (audioCtx.sampleRate / analyser.fftSize);
+                        
+                        TARGET_FREQUENCIES.forEach(target => {
+                            if (Math.abs(freq - target) < TOLERANCE) {
+                                if (dataArray[i] > SENSITIVITY_THRESHOLD) {
+                                    if (dataArray[i] > maxVal) {
+                                        maxVal = dataArray[i];
+                                        detectedFreq = target;
+                                    }
+                                }
+                            }
+                        });
                     }
                     
-                    const freq = Math.round((maxIndex * (audioCtx.sampleRate/2)) / dataArray.length);
-                    if (maxVal > 10) debugEl.textContent = `Freq: ${freq} Hz | Vol: ${maxVal}`;
-                    
-                    if(Math.abs(freq - TARGET_FREQUENCY) < TOLERANCE && maxVal > 20) {
+                    if (maxVal > SENSITIVITY_THRESHOLD) {
+                        debugEl.textContent = `Target Signal Detected! (${Math.round(detectedFreq)}Hz)`;
                         scriptNode.disconnect(); microphone.disconnect(); analyser.disconnect(); audioCtx.close();
                         statusEl.textContent = "Signal verified! Syncing...";
                         socket.emit('student_attendance', currentUser);
@@ -171,7 +188,9 @@
             statusEl.className = "success";
             listenBtn.textContent = "Success";
             
-            // Allow logging out/switching only after success for testing
+            // Refresh stats after marking present
+            socket.emit('get_student_stats', currentUser.id);
+
             const logout = document.createElement('button');
             logout.className = 'btn';
             logout.style.background = '#4b5563';
@@ -185,6 +204,19 @@
             statusEl.textContent = msg;
             statusEl.className = "error";
             listenBtn.disabled = false;
+        });
+
+        socket.on('student_stats_data', (data) => {
+            document.getElementById('studentPerc').textContent = data.percentage + "%";
+            document.getElementById('studentStatsText').textContent = `Present in ${data.attended} out of ${data.total} sessions`;
+            document.getElementById('percFill').style.width = data.percentage + "%";
+            
+            if (data.missedDates && data.missedDates.length > 0) {
+                document.getElementById('missedSection').style.display = 'block';
+                document.getElementById('missedList').innerHTML = data.missedDates.map(d => `• ${d}`).join('<br>');
+            } else {
+                document.getElementById('missedSection').style.display = 'none';
+            }
         });
     </script>
 </body>

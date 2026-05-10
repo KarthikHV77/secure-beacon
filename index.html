@@ -3,111 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Beacon | Admin Dashboard</title>
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <title>SecureBeacon | Unified Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f1115;
+            --card: #1c1f26;
+            --primary: #3b82f6;
+            --secondary: #6366f1;
+            --text: #f0f0f5;
+            --muted: #94a3b8;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .login-container {
+            background: var(--card);
+            padding: 3rem;
+            border-radius: 2rem;
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+        }
+        .logo-section { margin-bottom: 2.5rem; }
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 1rem;
+            margin: 0 auto 1rem;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+        h1 { font-size: 1.75rem; margin: 0; font-weight: 700; }
+        p { color: var(--muted); font-size: 0.9rem; margin-top: 0.5rem; }
+
+        .role-selector {
+            display: flex;
+            background: var(--bg);
+            padding: 0.4rem;
+            border-radius: 0.75rem;
+            margin-bottom: 2rem;
+            gap: 0.4rem;
+        }
+        .role-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            color: var(--muted);
+        }
+        .role-btn.active {
+            background: var(--card);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .input-group { text-align: left; margin-bottom: 1.25rem; }
+        label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.5rem; font-weight: 500; }
+        input {
+            width: 100%;
+            padding: 1rem;
+            background: var(--bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            color: white;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border 0.3s;
+        }
+        input:focus { outline: none; border-color: var(--primary); }
+
+        .login-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: transform 0.2s;
+        }
+        .login-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .error-msg { color: #ef4444; font-size: 0.85rem; margin-top: 1rem; display: none; }
+        
+        .bg-pulse {
+            position: absolute;
+            width: 150%;
+            height: 150%;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
+            top: -25%;
+            left: -25%;
+            z-index: -1;
+            animation: pulse 8s infinite alternate;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
+    </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="logo-area">
-                <div class="beacon-icon"></div>
-                <h2>SecureBeacon</h2>
-            </div>
-            <nav class="nav-menu">
-                <a href="#" class="nav-item active" data-view="live">
-                    <span class="icon">🔴</span> Live Class
-                </a>
-                <a href="#" class="nav-item" data-view="history">
-                    <span class="icon">📊</span> History & Analytics
-                </a>
-            </nav>
-            <div class="user-profile">
-                <div class="avatar">👨‍🏫</div>
-                <div class="user-info">
-                    <span class="name">Prof. Karthik</span>
-                    <span class="role">Department of MCA</span>
-                </div>
-            </div>
-        </aside>
+    <div class="bg-pulse"></div>
+    <div class="login-container">
+        <div class="logo-section">
+            <div class="logo-icon">📡</div>
+            <h1>SecureBeacon</h1>
+            <p>Nagarjuna College of Engineering & Technology</p>
+        </div>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <header class="top-header">
-                <div class="class-selector">
-                    <select id="currentClass" class="custom-select">
-                        <option value="software-engineering">MCA Semester 2 - Software Engineering</option>
-                    </select>
-                </div>
-                <div class="beacon-controls">
-                    <div class="status-indicator">
-                        <div class="pulse-ring"></div>
-                        <span id="beaconStatusText">Beacon Offline</span>
-                    </div>
-                    <button id="toggleBeaconBtn" class="btn btn-primary">Start Broadcast</button>
-                </div>
-            </header>
+        <div class="role-selector">
+            <div class="role-btn active" id="btnTeacher">Teacher</div>
+            <div class="role-btn" id="btnStudent">Student</div>
+        </div>
 
-            <div class="dashboard-grid view-section active" id="view-live">
-                <div class="stat-card">
-                    <h3>Total Enrolled</h3>
-                    <div class="value">28</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Present Today</h3>
-                    <div class="value present-val" id="presentCount">0</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Absent</h3>
-                    <div class="value absent-val" id="absentCount">28</div>
-                </div>
-                
-                <div class="chart-container card">
-                    <h3>Real-Time Attendance Overview</h3>
-                    <div class="chart-wrapper">
-                        <canvas id="attendanceChart"></canvas>
-                    </div>
-                </div>
-
-                <div class="table-container card">
-                    <div class="table-header">
-                        <h3>Live Check-Ins</h3>
-                        <div class="actions">
-                            <button class="btn btn-secondary" onclick="exportData('pdf')">Export PDF</button>
-                            <button class="btn btn-secondary" onclick="exportData('excel')">Export Excel</button>
-                        </div>
-                    </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Sl No</th>
-                                <th>Student Name</th>
-                                <th>Roll No</th>
-                                <th>Time of Entry</th>
-                                <th>RSSI (Signal)</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="liveLogBody">
-                            <!-- Dynamic Rows -->
-                        </tbody>
-                    </table>
-                </div>
+        <div id="loginForm">
+            <div class="input-group">
+                <label id="idLabel">Faculty ID</label>
+                <input type="text" id="userInput" placeholder="e.g. KAR01">
             </div>
-            
-            <div class="dashboard-grid view-section" id="view-history" style="display:none;">
-                 <div class="card full-width">
-                     <h3>Analytics & Filtering</h3>
-                     <p style="color:var(--text-muted);margin-top:1rem;">Feature under development.</p>
-                 </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="passInput" placeholder="Enter password">
             </div>
-        </main>
+            <button class="login-btn" id="submitBtn">Sign In</button>
+            <p id="errorMsg" class="error-msg">Invalid credentials, please try again.</p>
+        </div>
     </div>
-    <script type="module" src="app.js"></script>
+
+    <script>
+        let currentRole = 'teacher';
+        const btnTeacher = document.getElementById('btnTeacher');
+        const btnStudent = document.getElementById('btnStudent');
+        const idLabel = document.getElementById('idLabel');
+        const userInput = document.getElementById('userInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const errorMsg = document.getElementById('errorMsg');
+
+        btnTeacher.onclick = () => {
+            currentRole = 'teacher';
+            btnTeacher.classList.add('active');
+            btnStudent.classList.remove('active');
+            idLabel.textContent = "Faculty ID";
+            userInput.placeholder = "e.g. KAR01";
+        };
+
+        btnStudent.onclick = () => {
+            currentRole = 'student';
+            btnStudent.classList.add('active');
+            btnTeacher.classList.remove('active');
+            idLabel.textContent = "Roll Number (USN)";
+            userInput.placeholder = "e.g. 1NC25MC001";
+        };
+
+        submitBtn.onclick = () => {
+            const id = userInput.value.trim().toUpperCase();
+            const pass = document.getElementById('passInput').value;
+
+            if (!id || !pass) return;
+
+            // In a real app, this would be a secure fetch call.
+            // For this project, we redirect based on role and store session in localStorage.
+            if (pass === "123456") {
+                localStorage.setItem('user_id', id);
+                localStorage.setItem('role', currentRole);
+                
+                if (currentRole === 'teacher') {
+                    window.location.href = '/teacher.html';
+                } else {
+                    window.location.href = '/student.html';
+                }
+            } else {
+                errorMsg.style.display = 'block';
+            }
+        };
+    </script>
 </body>
 </html>
